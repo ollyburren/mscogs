@@ -25,3 +25,4 @@ Further information on the methods employed is available from:
 
 - Burren,O.S. et al. (2017) Chromosome contacts in activated T cells identify autoimmune disease candidate genes. Genome Biol., 18, 165.
 - Javierre,B.M. et al. (2016) Lineage-Specific Genome Architecture Links Enhancers and Non-coding Disease Variants to Target Gene Promoters. Cell, 167, 1369–1384.e19.
+ 
