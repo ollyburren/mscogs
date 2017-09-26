@@ -117,6 +117,35 @@ for ct in chic_filt.columns[15:]:
     snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
     print(ct)
 
+tmp = [None] * len(uensg)
+for i in range(l):
+    a = uensg[i]
+    foo = snps_df.ix[:, [0, 1]]
+    foo['ensg'] = pd.Series([a] * len(snps_df), index = foo.index)
+    foo['chr'] = pd.Series([10] * len(snps_df), index = foo.index)
+    foo = foo.ix[:, ['chr', 'pos', 'pos', 'rs_id']]
+    tmp[i] = foo
+    print(i)
+
+snps_df_stack = pd.concat(tmp)
+
+snps_str_stack = snps_df_stack.to_csv(index = False, header = False, sep = ' ')
+snps_bed_stack = BedTool(snps_str_stack, from_string = True)
+
+
+for ct in chic_filt.columns[15:]:
+    chic_df = chic_filt.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
+    snps_df_stack[ct] = pd.Series(boolSeries(chic_df, snps_bed_stack), index = snps_df_stack.index)
+    print(ct)
+
+
+
+
+
+
+
+
+
 
 
 ##
