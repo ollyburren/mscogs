@@ -14,6 +14,19 @@ from pybedtools import BedTool
 #take a pandas df object and convert it to a BedTool object
 def pnd_to_bt(df):
     return(BedTool(df.to_csv(index = False, header = False, sep = ' '), from_string = True))
+
+def bt_to_pnd(bt):
+    return(pd.read_table(bt.fn, names = ['chr', 'start', 'stop', 'id']))
+
+#chic = {pandas df with 4 columns in BedTools format + last column CHICAGO score}, snps = {BedTool object}
+def boolSeries(chic, snps_bed):
+    snps_df = bt_to_pnd(snps_bed)
+    chic_bed = chic.iloc[np.concatenate(np.where(chic.ix[:,[3]] > 5))]
+    chic_bed = pnd_to_bt(chic_bed.ix[:, [0, 1, 2]])
+    ww = snps_bed.intersect(chic_bed, u = True)
+    snps_int_df = bt_to_pnd(ww)
+    return(np.isin(np.array(snps_df['id']), np.array(snps_int_df['id'])))
+
 #------------------------------------------------------------------------
 
 #load SM2 RData object
@@ -77,44 +90,32 @@ snps_bed = BedTool(snps_str, from_string = True)
 ##genomic ranges a-la python
 chic = pd.read_csv('merged_samples_12Apr2015_full_denorm_bait2baits_e75.tab', sep = "\t")
 
-bt = chic.ix[:,['baitChr', 'baitStart', 'baitEnd']].to_csv(index = False, header = False, sep = ' ')
-chic_bed = BedTool(bt, from_string = True)
 
-np.concatenate(np.where(chic['Erythroblasts'] > 5))
+for ct in chic.columns[15:]:
+    chic_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
+    snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
+    print(ct)
 
-#which snps intersect any of the chic elements?
-ww = snps_bed.intersect(chic_bed, u = True)
-#data frame
-snps_bed_df = pd.read_table(ww.fn, names = ['chr', 'start', 'stop', 'rs_id'])
+oe_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', 'ensg']]
+bait_df = chic.ix[:, ['baitChr', 'baitStart', 'baitEnd', 'ensg']]
 
-snps_df['bait'] = pd.Series(np.isin(np.array(snps_df['rs_id']), np.array(snps_bed_df['rs_id'])), index = snps_df.index)
+region_info = '10p-6030243-6169685'.split('-')
+region_info[0] = re.sub("[pq]", '', region_info[0])
+ri_bed = BedTool(' '.join(region_info), from_string = True)
 
-#chic = {pandas df with 4 columns in BedTools format + last column CHICAGO score}, snps = {BedTool object}
-def boolSeries(chic, snps_bed):
-    snps_df = pd.read_table(snps_bed.fn, names = ['chr', 'start', 'stop', 'rs_id'])
-    chic_bed = chic.iloc[np.concatenate(np.where(chic.ix[:,[3]] > 5))]
-    chic_bed = pnd_to_bt(chic_bed.ix[:, [0, 1, 2]])
-    ww = snps_bed.intersect(chic_bed, u = True)
-    snps_int_df = pd.read_table(ww.fn, names = ['chr', 'start', 'stop', 'rs_id'])
-    return(pd.Series(np.isin(np.array(snps_df['rs_id']), np.array(snps_int_df['rs_id'])), index = snps_df.index))
-
-
-ct = 'Erythroblasts'
-chic_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
-
-ff = boolSeries(chic_df, snps_bed)
+oe_ol = pnd_to_bt(oe_df).intersect(ri_bed, u = True)
+bait_ol = pnd_to_bt(bait_df).intersect(ri_bed, u = True)
+oe_ol = bt_to_pnd(oe_ol)
+bait_ol = bt_to_pnd(bait_ol)
+uensg = pd.concat([oe_ol['id'], bait_ol['id']]).unique()
+uensg_ind = np.isin(np.array(chic['ensg']), uensg)
+chic_filt = chic[uensg_ind]
 
 
-
-
-
-
-
-
-
-
-
-
+for ct in chic_filt.columns[15:]:
+    chic_df = chic_filt.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
+    snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
+    print(ct)
 
 
 
