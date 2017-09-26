@@ -1,5 +1,5 @@
 # MSCOGS - **M**ulti **S**NP **c**apture-HIC omnibus **g**ene **s**core. 
-
+ 
 This attempts to port the previous software [COGS](https://github.com/ollyburren/CHIGP) from R programming language to python. There are two main objectives:
 
 1. Get better at python
