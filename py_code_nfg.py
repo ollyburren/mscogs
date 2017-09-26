@@ -9,6 +9,13 @@ pandas2ri.activate()
 import re
 from pybedtools import BedTool
 
+#------------------------------------------------------------------------
+##FUNCTIONS
+#take a pandas df object and convert it to a BedTool object
+def pnd_to_bt(df):
+    return(BedTool(df.to_csv(index = False, header = False, sep = ' '), from_string = True))
+#------------------------------------------------------------------------
+
 #load SM2 RData object
 robjects.r['load']("snpmod-fixed2.RData")
 #get list names
@@ -69,8 +76,11 @@ snps_bed = BedTool(snps_str, from_string = True)
 
 ##genomic ranges a-la python
 chic = pd.read_csv('merged_samples_12Apr2015_full_denorm_bait2baits_e75.tab', sep = "\t")
+
 bt = chic.ix[:,['baitChr', 'baitStart', 'baitEnd']].to_csv(index = False, header = False, sep = ' ')
 chic_bed = BedTool(bt, from_string = True)
+
+np.concatenate(np.where(chic['Erythroblasts'] > 5))
 
 #which snps intersect any of the chic elements?
 ww = snps_bed.intersect(chic_bed, u = True)
@@ -79,6 +89,20 @@ snps_bed_df = pd.read_table(ww.fn, names = ['chr', 'start', 'stop', 'rs_id'])
 
 snps_df['bait'] = pd.Series(np.isin(np.array(snps_df['rs_id']), np.array(snps_bed_df['rs_id'])), index = snps_df.index)
 
+#chic = {pandas df with 4 columns in BedTools format + last column CHICAGO score}, snps = {BedTool object}
+def boolSeries(chic, snps_bed):
+    snps_df = pd.read_table(snps_bed.fn, names = ['chr', 'start', 'stop', 'rs_id'])
+    chic_bed = chic.iloc[np.concatenate(np.where(chic.ix[:,[3]] > 5))]
+    chic_bed = pnd_to_bt(chic_bed.ix[:, [0, 1, 2]])
+    ww = snps_bed.intersect(chic_bed, u = True)
+    snps_int_df = pd.read_table(ww.fn, names = ['chr', 'start', 'stop', 'rs_id'])
+    return(pd.Series(np.isin(np.array(snps_df['rs_id']), np.array(snps_int_df['rs_id'])), index = snps_df.index))
+
+
+ct = 'Erythroblasts'
+chic_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
+
+ff = boolSeries(chic_df, snps_bed)
 
 
 
@@ -99,10 +123,7 @@ snps_df['bait'] = pd.Series(np.isin(np.array(snps_df['rs_id']), np.array(snps_be
 
 
 
-
-
-
-if False == True:
+if False:
     #junk
     #alternative for format
     [snps.append(x.split('.')) for x in z1.split('%')]
@@ -128,6 +149,11 @@ if False == True:
     match = lambda a, b: [ 1 if x in b else 0 for x in a ]
     match = lambda a, b: [ b.index(x)+1 if x in b else None for x in a ]
 
+    chic_bed = chic.iloc[np.concatenate(np.where(chic['Erythroblasts'] > 5))]
+    chic_bed = pnd_to_bt(chic_bed.ix[:, ['oeChr', 'oeStart', 'oeEnd']])
+    ww = snps_bed.intersect(chic_bed, u = True)
+    snps_bed_df = pd.read_table(ww.fn, names = ['chr', 'start', 'stop', 'rs_id'])
+    return(pd.Series(np.isin(np.array(snps_df['rs_id']), np.array(snps_bed_df['rs_id'])), index = snps_df.index))
 
 
 
