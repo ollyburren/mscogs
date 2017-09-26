@@ -111,7 +111,7 @@ uensg = pd.concat([oe_ol['id'], bait_ol['id']]).unique()
 uensg_ind = np.isin(np.array(chic['ensg']), uensg)
 chic_filt = chic[uensg_ind]
 
-
+#sing case
 for ct in chic_filt.columns[15:]:
     chic_df = chic_filt.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
     snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
@@ -132,7 +132,7 @@ snps_df_stack = pd.concat(tmp)
 snps_str_stack = snps_df_stack.ix[:, [0, 1, 2, 3]].to_csv(index = False, header = False, sep = ' ')
 snps_bed_stack = BedTool(snps_str_stack, from_string = True)
 
-
+#multistack case
 for ct in chic_filt.columns[15:]:
     chic_df = chic_filt.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
     snps_df_stack[ct] = pd.Series(boolSeries(chic_df, snps_bed_stack), index = snps_df_stack.index)
