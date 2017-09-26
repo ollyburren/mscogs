@@ -123,13 +123,13 @@ for i in range(l):
     foo = snps_df.ix[:, [0, 1]]
     foo['ensg'] = pd.Series([a] * len(snps_df), index = foo.index)
     foo['chr'] = pd.Series([10] * len(snps_df), index = foo.index)
-    foo = foo.ix[:, ['chr', 'pos', 'pos', 'rs_id']]
+    foo = foo.ix[:, ['chr', 'pos', 'pos', 'rs_id', 'ensg']]
     tmp[i] = foo
     print(i)
 
 snps_df_stack = pd.concat(tmp)
 
-snps_str_stack = snps_df_stack.to_csv(index = False, header = False, sep = ' ')
+snps_str_stack = snps_df_stack.ix[:, [0, 1, 2, 3]].to_csv(index = False, header = False, sep = ' ')
 snps_bed_stack = BedTool(snps_str_stack, from_string = True)
 
 
