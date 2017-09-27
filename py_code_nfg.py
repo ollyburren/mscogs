@@ -12,6 +12,7 @@ import os.path
 from pybedtools import BedTool
 
 
+
 ## put the location of the data in an environment variable so code is more portable
 
 data_dir = os.environ['MSCOGS_DATA']
@@ -30,15 +31,11 @@ def pnd_to_bt(df):
 def bt_to_pnd(bt):
     return(pd.read_table(bt.fn, names = ['chr', 'start', 'stop', 'id']))
 
-#chic = {pandas df with 4 columns in BedTools format + last column CHICAGO score}, snps = {BedTool object}
-#returns an indicator vector for each snp overapping a chic object
-def boolSeries(chic, snps_bed):
-    snps_df = bt_to_pnd(snps_bed)
-    chic_bed = chic.iloc[np.concatenate(np.where(chic.ix[:,[3]] > 5))]
-    chic_bed = pnd_to_bt(chic_bed.ix[:, [0, 1, 2]])
-    ww = snps_bed.intersect(chic_bed, u = True)
-    snps_int_df = bt_to_pnd(ww)
-    return(np.isin(np.array(snps_df['id']), np.array(snps_int_df['id'])))
+#given a dataframe df and a list of columns lc, drop lc from df and return the resulting data frame
+def drop_c(df, lc):
+    cols = df.columns.tolist()
+    blinx = ~np.isin(cols, lc)
+    return(df.ix[:,blinx])
 
 #------------------------------------------------------------------------
 #load SM2 RData object
@@ -154,11 +151,7 @@ for ct in chic_filt.columns[15:]:
     snps_df_stack[ct] = pd.Series(boolSeries(chic_df, snps_bed_stack), index = snps_df_stack.index)
     print(ct)
 
-#df = df containing cell indicators; lct = list of cell type names
-def cell_indicator(df, lct):
-    foo = df.ix[:, lct].apply(sum, axis = 1)
-    ind = np.concatenate(np.where(foo == 1))
-    return(df.ix[ind, ['rs_id', 'ensg']])
+
 
 foo = cell_indicator(snps_df_stack, ['Neutrophils'])
 ind = np.concatenate(np.where(foo == 1))
@@ -170,6 +163,38 @@ snps_df_stack['ensg'].value_counts()
 
 
 #---------------------------------------------------------
+#melting chic_filt dataframe
+keys = chic_filt.columns[15:].tolist()
+id_vars = chic_filt.columns[:15].tolist()
+chic_melt = pd.melt(chic_filt, id_vars = id_vars, value_vars = keys)
+#combine ensg id and varible (cell) name into one id
+chic_melt['uid'] = pd.Series(["%s-%s" % t for t in zip(chic_melt['ensg'], chic_melt['variable'])], index = chic_melt.index)
+chic_melt_bt = pnd_to_bt(chic_melt.ix[:, ['oeChr', 'oeStart', 'oeEnd', 'uid', 'value']])
+res = snps_bed.intersect(chic_melt_bt, wb = True)
+res = pd.read_table(ww.fn, names = ['snp_pos1', 'snp_pos2', 'snp_id', 'chr', 'ensg_start', 'ensg_stop', 'ensg_id', 'score'])
+#filter according to score strength
+res = res.loc[res['score'] > 5]
+res.index = range(len(res))
+##splitting ensg_id into a df with two columns
+#uu = pd.DataFrame([x.split('-') for x in res['ensg_id']], columns = ['ensg', 'cell_type'])
+##'cbinding' res and uu
+#res = pd.concat([res, uu], axis = 1)
+##dropping ensg_id as not needed anymore
+#res = drop_c(res, 'ensg_id')
+snps_by_ensg = {ensg: rows['snp_id'].unique() for ensg, rows in res.groupby('ensg_id')}
+
+
+
+for key in snps_by_ensg:
+    print "key: %s" % (key)
+
+
+z1 = z['str'] #140
+
+uu = pd.DataFrame([x.split('%') for x in z['str']])
+
+
+
 
 
 tmp = [None] * len(uensg)
@@ -195,12 +220,6 @@ foo.loc[:,'chr'] = pd.Series([10] * len(snps_df_stub), index = foo.index)
 foo = foo.ix[:, ['chr', 'pos', 'pos', 'rs_id', 'ensg']]
 tmp[i] = foo
 print(i)
-
-
-
-
-
-
 
 
 
