@@ -25,4 +25,11 @@ Further information on the methods employed is available from:
 
 - Burren,O.S. et al. (2017) Chromosome contacts in activated T cells identify autoimmune disease candidate genes. Genome Biol., 18, 165.
 - Javierre,B.M. et al. (2016) Lineage-Specific Genome Architecture Links Enhancers and Non-coding Disease Variants to Target Gene Promoters. Cell, 167, 1369–1384.e19.
- 
+
+## TODO
+
+- We need to make a look up list for snps to models. Perhaps we use/abuse Series
+- Once we have this we can use the Dict object that relates genes and tissues to SNPs to pull back a list of SNPs we can then use the above to select models and then use these to compute the mPPi
+- We also need a way of removing coding SNPs from so that these are not included
+- Extend so that we can compute promoter regions
+- Extend so that we can compute cSNPs
