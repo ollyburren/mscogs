@@ -18,9 +18,7 @@ data_dir = os.environ['MSCOGS_DATA']
 model_r_obj_file = os.path.join(data_dir,'snpmod-fixed2.RData')
 chic_file = os.path.join(data_dir,'merged_samples_12Apr2015_full_denorm_bait2baits_e75.tab')
 
-
-
-
+region_info = '10p-6030243-6169685'.split('-')
 
 #------------------------------------------------------------------------
 ##FUNCTIONS
@@ -28,10 +26,12 @@ chic_file = os.path.join(data_dir,'merged_samples_12Apr2015_full_denorm_bait2bai
 def pnd_to_bt(df):
     return(BedTool(df.to_csv(index = False, header = False, sep = ' '), from_string = True))
 
+#take BedTools object and covert it to a pandas df object
 def bt_to_pnd(bt):
     return(pd.read_table(bt.fn, names = ['chr', 'start', 'stop', 'id']))
 
 #chic = {pandas df with 4 columns in BedTools format + last column CHICAGO score}, snps = {BedTool object}
+#returns an indicator vector for each snp overapping a chic object
 def boolSeries(chic, snps_bed):
     snps_df = bt_to_pnd(snps_bed)
     chic_bed = chic.iloc[np.concatenate(np.where(chic.ix[:,[3]] > 5))]
@@ -41,7 +41,6 @@ def boolSeries(chic, snps_bed):
     return(np.isin(np.array(snps_df['id']), np.array(snps_int_df['id'])))
 
 #------------------------------------------------------------------------
-print('Got here')
 #load SM2 RData object
 robjects.r['load'](model_r_obj_file)
 #get list names
@@ -104,32 +103,26 @@ snps_bed = BedTool(snps_str, from_string = True)
 chic = pd.read_csv(chic_file, sep = "\t")
 
 
-#for ct in chic.columns[15:]:
-#    chic_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
-#    snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
-#    print(ct)
-
 oe_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', 'ensg']]
 bait_df = chic.ix[:, ['baitChr', 'baitStart', 'baitEnd', 'ensg']]
 
-region_info = '10p-6030243-6169685'.split('-')
+#BedTool'ing region info
 region_info[0] = re.sub("[pq]", '', region_info[0])
 ri_bed = BedTool(' '.join(region_info), from_string = True)
 
+#determining overlaps between bait and oe and the region of interest
 oe_ol = pnd_to_bt(oe_df).intersect(ri_bed, u = True)
 bait_ol = pnd_to_bt(bait_df).intersect(ri_bed, u = True)
 oe_ol = bt_to_pnd(oe_ol)
 bait_ol = bt_to_pnd(bait_ol)
+#pulling together id's of genes overlapping the region; only keeping unique id's
 uensg = pd.concat([oe_ol['id'], bait_ol['id']]).unique()
 uensg_ind = np.isin(np.array(chic['ensg']), uensg)
+#creating filtered chic object, only keeping genes overlapping region of interest
 chic_filt = chic[uensg_ind]
 
-#sing case
-#for ct in chic_filt.columns[15:]:
-#    chic_df = chic_filt.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
-#    snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
-#    print(ct)
-print('Got here')
+#stacking snps_df's (1 for each unique gene in the region)
+#creating list of snps_df
 tmp = [None] * len(uensg)
 for i in range(len(uensg)):
     a = uensg[i]
@@ -139,17 +132,53 @@ for i in range(len(uensg)):
     foo = foo.ix[:, ['chr', 'pos', 'pos', 'rs_id', 'ensg']]
     tmp[i] = foo
     print(i)
+#stacking all the snps_df in the list
+snps_df_stack = pd.concat(tmp, ignore_index = True)
 
-snps_df_stack = pd.concat(tmp)
-
-snps_str_stack = snps_df_stack.ix[:, [0, 1, 2, 3]].to_csv(index = False, header = False, sep = ' ')
-snps_bed_stack = BedTool(snps_str_stack, from_string = True)
+snps_bed_stack = pnd_to_bt(snps_df_stack.ix[:, [0, 1, 2, 3]])
 
 #multistack case
 for ct in chic_filt.columns[15:]:
     chic_df = chic_filt.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
     snps_df_stack[ct] = pd.Series(boolSeries(chic_df, snps_bed_stack), index = snps_df_stack.index)
     print(ct)
+
+#df = df containing cell indicators; lct = list of cell type names
+def cell_indicator(df, lct):
+    foo = df.ix[:, lct].apply(sum, axis = 1)
+    ind = np.concatenate(np.where(foo == 1))
+    return(df.ix[ind, ['rs_id', 'ensg']])
+
+foo = cell_indicator(snps_df_stack, ['Neutrophils'])
+ind = np.concatenate(np.where(foo == 1))
+
+snps_df_stack.ix[ind,['rs_id', 'ensg']]
+
+snps_df_stack.ix[ind]['ensg'].value_counts()
+snps_df_stack['ensg'].value_counts()
+
+
+#---------------------------------------------------------
+
+def boolSeries(chic, snps_bed):
+    snps_df = bt_to_pnd(snps_bed)
+    chic_bed = chic.iloc[np.concatenate(np.where(chic.ix[:,[3]] > 5))]
+    chic_bed = pnd_to_bt(chic_bed.ix[:, [0, 1, 2]])
+    ww = snps_bed.intersect(chic_bed, u = True)
+    snps_int_df = bt_to_pnd(ww)
+    return(np.isin(np.array(snps_df['id']), np.array(snps_int_df['id'])))
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
