@@ -123,15 +123,26 @@ chic_filt = chic[uensg_ind]
 
 #stacking snps_df's (1 for each unique gene in the region)
 #creating list of snps_df
+
 tmp = [None] * len(uensg)
 for i in range(len(uensg)):
     a = uensg[i]
-    foo = snps_df.ix[:, [0, 1]]
-    foo['ensg'] = pd.Series([a] * len(snps_df), index = foo.index)
-    foo['chr'] = pd.Series([10] * len(snps_df), index = foo.index)
-    foo = foo.ix[:, ['chr', 'pos', 'pos', 'rs_id', 'ensg']]
-    tmp[i] = foo
+    indx = np.isin(chic_filt['ensg'], a)
+    chic_tmp = chic_filt[indx]
+    #looping throug cell types
+    snps_df_stub = snps_df
+    for ct in chic_filt.columns[15:]:
+        chic_df = chic_tmp.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
+        snps_df_stub[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df_stub.index)
+        print(ct)
+
+    #foo = snps_df_stub.ix[:, [0, 1]]
+    snps_df_stub = snps_df_stub.assign(ensg = pd.Series([a] * len(snps_df_stub), index = snps_df_stub.index))
+    snps_df_stub = snps_df_stub.assign(chr = pd.Series([10] * len(snps_df_stub), index = snps_df_stub.index))
+    #foo = foo.ix[:, ['chr', 'pos', 'pos', 'rs_id', 'ensg']]
+    tmp[i] = snps_df_stub
     print(i)
+
 #stacking all the snps_df in the list
 snps_df_stack = pd.concat(tmp, ignore_index = True)
 
@@ -160,20 +171,30 @@ snps_df_stack['ensg'].value_counts()
 
 #---------------------------------------------------------
 
-def boolSeries(chic, snps_bed):
-    snps_df = bt_to_pnd(snps_bed)
-    chic_bed = chic.iloc[np.concatenate(np.where(chic.ix[:,[3]] > 5))]
-    chic_bed = pnd_to_bt(chic_bed.ix[:, [0, 1, 2]])
-    ww = snps_bed.intersect(chic_bed, u = True)
-    snps_int_df = bt_to_pnd(ww)
-    return(np.isin(np.array(snps_df['id']), np.array(snps_int_df['id'])))
+
+tmp = [None] * len(uensg)
+for i in range(len(uensg)):
+
+a = uensg[i]
+indx = np.isin(chic_filt['ensg'], a)
+chic_tmp = chic_filt[indx]
+#looping throug cell types
+snps_df_stub = snps_df
+for ct in chic_filt.columns[15:]:
+    chic_df = chic_tmp.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
+    snps_df_stub[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df_stub.index)
+    print(ct)
+
+foo = snps_df_stub.ix[:, [0, 1]]
+foo = foo.assign(ensg = pd.Series([a] * len(snps_df_stub), index = foo.index))
+foo = foo.assign(chr = pd.Series([10] * len(snps_df_stub), index = foo.index))
 
 
-
-
-
-
-
+foo.loc[:,'ensg'] = pd.Series([a] * len(snps_df_stub), index = foo.index)
+foo.loc[:,'chr'] = pd.Series([10] * len(snps_df_stub), index = foo.index)
+foo = foo.ix[:, ['chr', 'pos', 'pos', 'rs_id', 'ensg']]
+tmp[i] = foo
+print(i)
 
 
 
