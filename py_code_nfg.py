@@ -7,7 +7,20 @@ import pandas as pd
 from rpy2.robjects import pandas2ri
 pandas2ri.activate()
 import re
+import os
+import os.path
 from pybedtools import BedTool
+
+
+## put the location of the data in an environment variable so code is more portable
+
+data_dir = os.environ['MSCOGS_DATA']
+model_r_obj_file = os.path.join(data_dir,'snpmod-fixed2.RData')
+chic_file = os.path.join(data_dir,'merged_samples_12Apr2015_full_denorm_bait2baits_e75.tab')
+
+
+
+
 
 #------------------------------------------------------------------------
 ##FUNCTIONS
@@ -28,9 +41,9 @@ def boolSeries(chic, snps_bed):
     return(np.isin(np.array(snps_df['id']), np.array(snps_int_df['id'])))
 
 #------------------------------------------------------------------------
-
+print('Got here')
 #load SM2 RData object
-robjects.r['load']("snpmod-fixed2.RData")
+robjects.r['load'](model_r_obj_file)
 #get list names
 names = robjects.r('names(SM2)')
 
@@ -88,13 +101,13 @@ snps_str = snps_df.ix[:, ['chr', 'pos', 'pos', 'rs_id']].to_csv(index = False, h
 snps_bed = BedTool(snps_str, from_string = True)
 
 ##genomic ranges a-la python
-chic = pd.read_csv('merged_samples_12Apr2015_full_denorm_bait2baits_e75.tab', sep = "\t")
+chic = pd.read_csv(chic_file, sep = "\t")
 
 
-for ct in chic.columns[15:]:
-    chic_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
-    snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
-    print(ct)
+#for ct in chic.columns[15:]:
+#    chic_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
+#    snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
+#    print(ct)
 
 oe_df = chic.ix[:, ['oeChr', 'oeStart', 'oeEnd', 'ensg']]
 bait_df = chic.ix[:, ['baitChr', 'baitStart', 'baitEnd', 'ensg']]
@@ -112,13 +125,13 @@ uensg_ind = np.isin(np.array(chic['ensg']), uensg)
 chic_filt = chic[uensg_ind]
 
 #sing case
-for ct in chic_filt.columns[15:]:
-    chic_df = chic_filt.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
-    snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
-    print(ct)
-
+#for ct in chic_filt.columns[15:]:
+#    chic_df = chic_filt.ix[:, ['oeChr', 'oeStart', 'oeEnd', ct]]
+#    snps_df[ct] = pd.Series(boolSeries(chic_df, snps_bed), index = snps_df.index)
+#    print(ct)
+print('Got here')
 tmp = [None] * len(uensg)
-for i in range(l):
+for i in range(len(uensg)):
     a = uensg[i]
     foo = snps_df.ix[:, [0, 1]]
     foo['ensg'] = pd.Series([a] * len(snps_df), index = foo.index)
